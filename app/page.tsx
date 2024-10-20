@@ -1,7 +1,7 @@
 // use client
 
-import Chess from './chess';
+import ChessBoard from './chess';
 
 export default function Home() {
-  return <Chess />;
+  return <ChessBoard />;
 }
