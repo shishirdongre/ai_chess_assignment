@@ -3,8 +3,8 @@ import _ from "lodash";
 
 // Constants for control
 const NUM_PIECES = 3;
-const NUM_MOVES = 3;
-const MAX_DEPTH = 5;
+const NUM_MOVES = 7;
+export const MAX_DEPTH = 5;
 const CENTER_WEIGHT = 0.4;
 
 export function minimax(game: Chess, maximizingPlayer: boolean, depth = MAX_DEPTH): { move: Move | null, score: number } {
@@ -43,6 +43,9 @@ export function minimax(game: Chess, maximizingPlayer: boolean, depth = MAX_DEPT
 
 // Function to get random moves from selected pieces
 export function getRandomMoves(game: Chess, numPieces: number, numMoves: number, moves: Move[]): Move[] {
+    if(game.moveNumber() < 10) { 
+        numMoves = 20
+    }
     return getRandomSelection(game.moves({ verbose: true }) as Move[], numMoves);
 }
 

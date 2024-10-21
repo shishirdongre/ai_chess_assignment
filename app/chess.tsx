@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Chess, Move, Square } from 'chess.js';
-import { minimax } from './minimax';
+import { MAX_DEPTH, minimax } from './minimax';
+import { monteCarlo } from './montecarlo';
 
 // Dynamically import Chessboard without SSR
 const ChessboardNoSSR = dynamic(() => import('chessboardjsx'), { ssr: false });
@@ -32,18 +33,45 @@ export default function ChessBoard() {
 
 
 
-            // Add this to trigger minimax for AI's move
-            const { move: aiMove } = minimax(game, false); // assuming AI is minimizing player
-            if (aiMove === null) {
-                console.log('No move found');
-                return; // If no move is found, return
-            }
-            
-            game.move({
-                from: aiMove.from,
-                to: aiMove.to,
-            });  // Move the AI's best move
-            setFen(game.fen()); // Update the board state
+            // // Add this to trigger minimax for AI's move
+            // const { move: aiMove } = minimax(game, false); // assuming AI is minimizing player
+            // if (aiMove === null) {
+            //     console.log('No move found');
+            //     return; // If no move is found, return
+            // }
+
+            // game.move({
+            //     from: aiMove.from,
+            //     to: aiMove.to,
+            // });  // Move the AI's best move
+            // setFen(game.fen()); // Update the board state
+
+
+            // Use setTimeout to defer the AI move after the board is updated
+            setTimeout(() => {
+                // minimax
+                // Add this to trigger minimax for AI's move
+                // let depth = MAX_DEPTH
+                // if (game.moveNumber() < 10) {
+                //     depth = 2
+                // }
+                // const { move: aiMove } = minimax(game, false, depth); // assuming AI is minimizing player
+
+
+                // Monte Carlo
+                const { move: aiMove } = monteCarlo(game); // assuming AI is minimizing player
+                if (aiMove === null) {
+                    console.log('No move found');
+                    return; // If no move is found, return
+                }
+
+                game.move({
+                    from: aiMove.from,
+                    to: aiMove.to,
+                });  // Move the AI's best move
+                setFen(game.fen()); // Update the board state
+            }, 100);  // Slight delay to allow rendering (100ms or any small delay)
+
 
         } catch (error) {
             console.error(error);
