@@ -9,9 +9,9 @@ const pieceValues: { [key: string]: number } = {
     k: 10,
 };
 
-const CENTER_WEIGHT = 0;
-const OFFENSE_WEIGHT = 0.9;
-const PIECE_WEIGHT = 0.5;
+const CENTER_WEIGHT = 0.2;
+const OFFENSE_WEIGHT = 0.5;
+const PIECE_WEIGHT = 0.8;
 
 const centerSquares: Square[] = ['d4', 'e4', 'd5', 'e5'];
 

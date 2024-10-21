@@ -8,7 +8,8 @@ import _ from 'lodash';
 
 // Dynamically import Chessboard without SSR
 const ChessboardNoSSR = dynamic(() => import('chessboardjsx'), { ssr: false });
-const MOVES_LIMIT = 5000;
+const MOVES_LIMIT = 500;
+const performance = typeof window !== 'undefined' ? window.performance : null;
 
 export default function ChessBoard() {
     const [game, setGame] = useState(new Chess());
@@ -17,6 +18,9 @@ export default function ChessBoard() {
     const [dropSquareStyle, setDropSquareStyle] = useState({});
     const [isGameStarted, setIsGameStarted] = useState(false);
     const [turn, setTurn] = useState('w');
+    const [totalMoves, setTotalMoves] = useState(0); // Count the total number of moves
+    const [totalTime, setTotalTime] = useState(0); // Track total time for decision making
+    const [gameOverMessage, setGameOverMessage] = useState('');
 
     // Function to start the game with random white and Monte Carlo black players
     const startGame = () => {
@@ -24,12 +28,43 @@ export default function ChessBoard() {
         runGameLoop();  // Begin the automated game loop
     };
 
-    // Function to simulate 50 moves or until the game ends
+    // Function to evaluate the board score after 500 moves
+    const evaluateFinalScore = (game: Chess) => {
+        const pieceValues = {
+            p: 1,
+            n: 3,
+            b: 3,
+            r: 5,
+            q: 9,
+        };
+
+        let whiteScore = 0;
+        let blackScore = 0;
+
+        const board = game.board();
+        board.forEach((row) => {
+            row.forEach((piece) => {
+                if (piece && piece.type !== 'k') {  // Exclude kings
+                    if (piece.color === 'w') {
+                        whiteScore += pieceValues[piece.type];
+                    } else if (piece.color === 'b') {
+                        blackScore += pieceValues[piece.type];
+                    }
+                }
+            });
+        });
+
+        return { whiteScore, blackScore };
+    };
+
+    // Function to simulate moves or until the game ends
     const runGameLoop = async () => {
         let moveCount = 0;
+        let startTime = performance?.now() ?? 0;
+
         while (game.moveNumber() < MOVES_LIMIT && !game.isGameOver()) {
-            await new Promise((resolve) => setTimeout(resolve, 10));  // Add a small delay between moves
-            console.log('in game loop')
+            await new Promise((resolve) => setTimeout(resolve, 50));  // Add a small delay between moves
+
             // White player (random move)
             if (game.turn() === 'w') {
                 console.log('white to play');
@@ -60,12 +95,19 @@ export default function ChessBoard() {
                 }
             }
 
-
             // Black player (Monte Carlo)
             if (game.turn() === 'b' && !game.isGameOver()) {
-                console.log('black to play')
+                console.log('black to play');
+
+                // Measure time for Monte Carlo decision
+                const decisionStartTime = performance?.now() ?? 0;
 
                 const { move: aiMove } = monteCarlo(game);  // Black is the Monte Carlo player
+
+                const decisionEndTime = performance?.now() ?? 0;
+                const decisionTime = decisionEndTime - decisionStartTime;
+                setTotalTime(prevTime => prevTime + decisionTime);  // Add decision time to the total
+
                 if (aiMove) {
                     game.move({
                         from: aiMove.from as Square,
@@ -73,15 +115,27 @@ export default function ChessBoard() {
                         promotion: 'q',  // Always promote to queen
                     });
                     setFen(game.fen());
-                    // setSquareStyles(squareStyling(game.history({ verbose: true })));
                 }
             }
+
+            moveCount++;
+            setTotalMoves(moveCount);
         }
+
+        const totalGameTime = (performance?.now() ?? 0 - startTime) / 1000;  // Total time in seconds
+        setTotalTime(totalGameTime);
+
         if (game.isGameOver()) {
-            alert("Game over!");
+            const result = game.isDraw() ? 'Draw' : game.turn() === 'w' ? 'Black wins' : 'White wins';
+            setGameOverMessage(`Game over! Result: ${result}`);
         } else if (game.moveNumber() >= MOVES_LIMIT) {
-            alert("50 moves completed.");
+            const { whiteScore, blackScore } = evaluateFinalScore(game);
+            const result = blackScore > whiteScore ? 'Black wins' : whiteScore > blackScore ? 'White wins' : 'Draw';
+            setGameOverMessage(`50 moves completed. Result: ${result}`);
         }
+
+        console.log(`Total moves: ${moveCount}`);
+        console.log(`Average decision time per move: ${(totalTime / moveCount).toFixed(2)} seconds`);
     };
 
     return (
@@ -90,10 +144,6 @@ export default function ChessBoard() {
                 id="chessboard"
                 width={600}
                 position={fen}
-                // onMouseOverSquare={(square: Square) => onMouseOverSquare(square, game, setSquareStyles)}
-                // onMouseOutSquare={() => setSquareStyles(squareStyling(game.history({ verbose: true })))}
-                // onDragOverSquare={o{(square: Square) => onMouseOverSquare(square, game, setSquareStyles)}
-                // onMouseOutSquare={(nDragOverSquare}
                 boardStyle={{
                     borderRadius: '5px',
                     boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`,
@@ -108,58 +158,13 @@ export default function ChessBoard() {
                 </button>
             )}
 
-            {/* <h3>{turn === 'w' ? 'White to play' : 'Black to play'}</h3> */}
+            {isGameStarted && (
+                <div style={{ marginTop: '20px' }}>
+                    <p>Total Moves: {totalMoves}</p>
+                    {/* <p>Average Decision Time: {(totalTime / totalMoves).toFixed(2)} seconds</p> */}
+                    <p>{gameOverMessage}</p>
+                </div>
+            )}
         </div>
-    );
-}
-
-// Function to highlight squares with possible moves
-function onMouseOverSquare(square: Square, game: Chess, setSquareStyles: any) {
-    const moves = game.moves({
-        square,
-        verbose: true,
-    });
-
-    if (moves.length === 0) return;
-
-    const squaresToHighlight = moves.map((move) => move.to);
-    highlightSquare(square, squaresToHighlight, setSquareStyles);
-}
-
-// Function to highlight the squares with valid moves
-function highlightSquare(sourceSquare: Square, squaresToHighlight: Square[], setSquareStyles: any) {
-    const highlightStyles = [sourceSquare, ...squaresToHighlight].reduce(
-        (a, c) => ({
-            ...a,
-            [c]: {
-                background: 'radial-gradient(circle, #fffc00 36%, transparent 40%)',
-                borderRadius: '50%',
-            },
-        }),
-        {}
-    );
-    setSquareStyles((prevStyles: any) => ({
-        ...prevStyles,
-        ...highlightStyles,
-    }));
-}
-
-// Function to apply square styling (history, last move)
-const squareStyling = (history: Move[]) => {
-    const sourceSquare = history.length && history[history.length - 1].from;
-    const targetSquare = history.length && history[history.length - 1].to;
-
-    return {
-        [sourceSquare]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' },
-        [targetSquare]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' },
-    };
-};
-
-// Function to handle drag over event for drop square styles
-function onDragOverSquare(square: Square, setDropSquareStyle: any) {
-    setDropSquareStyle(
-        square === 'e4' || square === 'd4' || square === 'e5' || square === 'd5'
-            ? { backgroundColor: 'cornFlowerBlue' }
-            : { boxShadow: 'inset 0 0 1px 4px rgb(255, 255, 0)' }
     );
 }
