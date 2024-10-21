@@ -4,7 +4,7 @@ import { evaluateBoard } from "./evaluation";
 
 // Constants for control
 export const MAX_DEPTH = 10;
-const TRIALS_PER_MOVE = 20;
+const TRIALS_PER_MOVE = 50;
 const NUM_MOVES_TO_TEST = 20;
 
 // Monte Carlo Tree Search
@@ -38,6 +38,7 @@ export function monteCarlo(game: Chess, depth = MAX_DEPTH): { move: Move | null,
         if (avgScore < bestAvgScore) {
             bestAvgScore = avgScore;
             bestMove = move;
+            console.log('found new best move', bestMove, bestAvgScore)
         }
     }
 

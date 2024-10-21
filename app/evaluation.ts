@@ -6,12 +6,12 @@ const pieceValues: { [key: string]: number } = {
     b: 3,
     r: 5,
     q: 9,
-    k: 1000,
+    k: 10,
 };
 
-const CENTER_WEIGHT = 0.3;
-const OFFENSE_WEIGHT = 0.2;
-const PIECE_WEIGHT = 0.4;
+const CENTER_WEIGHT = 0;
+const OFFENSE_WEIGHT = 0.9;
+const PIECE_WEIGHT = 0.5;
 
 const centerSquares: Square[] = ['d4', 'e4', 'd5', 'e5'];
 
@@ -92,7 +92,7 @@ function evaluateOffenseDefense(game: Chess): number {
 
                 // Reward black for attacking white pieces
                 if (game.isAttacked(square, opponentColor)) {
-                    blackOffense += pieceValue * 2; // Reward more for stronger attacks
+                    blackOffense += pieceValue * 6; // Reward more for stronger attacks
                 }
 
                 // Penalize black for being attacked by white
