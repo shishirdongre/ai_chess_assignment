@@ -3,8 +3,8 @@ import _ from "lodash";
 import { evaluateBoard } from "./evaluation";
 
 // Constants for control
-export const MAX_DEPTH = 5;
-const TRIALS_PER_MOVE = 5;
+export const MAX_DEPTH = 10;
+const TRIALS_PER_MOVE = 10;
 const NUM_MOVES_TO_TEST = 100;
 
 // Monte Carlo Tree Search
@@ -38,7 +38,7 @@ export function monteCarlo(game: Chess, depth = MAX_DEPTH): { move: Move | null,
         if (avgScore < bestAvgScore) {
             bestAvgScore = avgScore;
             bestMove = move;
-            console.log('found new best move', bestMove, bestAvgScore)
+            // console.log('found new best move', bestMove, bestAvgScore)
         }
     }
 

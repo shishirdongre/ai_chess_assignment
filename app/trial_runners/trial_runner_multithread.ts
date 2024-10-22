@@ -1,24 +1,10 @@
-import { Chess, Move, Square } from "chess.js";
-import * as _ from "lodash";
-import { monteCarlo } from "./montecarlo";
-import * as fs from "fs";
-import { performance } from "perf_hooks";
-import { createObjectCsvWriter } from 'csv-writer';
+import { parentPort, workerData } from 'worker_threads';
+import { Chess } from "chess.js";
+import _ from "lodash";
+import { monteCarlo } from "../montecarlo";
 
 // Constants
-const TRIALS = 100;
 const MOVES_LIMIT = 500;
-
-// CSV Writer setup
-const csvWriter = createObjectCsvWriter({
-    path: './chess_trial_results.csv',
-    header: [
-        { id: 'trial', title: 'Trial' },
-        { id: 'winner', title: 'Winner' },
-        { id: 'moveCount', title: 'Move Count' },
-        { id: 'avgDecisionTime', title: 'Avg Decision Time (ms)' },
-    ]
-});
 
 // Function to simulate a single chess game
 async function runGame(trialNumber: number) {
@@ -29,7 +15,7 @@ async function runGame(trialNumber: number) {
     while (game.moveNumber() < MOVES_LIMIT && !game.isGameOver()) {
         // Random White Player
         if (game.turn() === 'w') {
-            const whiteMoves = game.moves({ verbose: true }) as Move[];
+            const whiteMoves = game.moves({ verbose: true });
             const randomWhiteMove = _.sample(whiteMoves); // Random move
 
             if (randomWhiteMove) {
@@ -77,7 +63,7 @@ async function runGame(trialNumber: number) {
 }
 
 // Function to evaluate the final board score after move limit
-function evaluateFinalScore(game: Chess) {
+function evaluateFinalScore(game) {
     const pieceValues = {
         p: 1,
         n: 3,
@@ -105,21 +91,8 @@ function evaluateFinalScore(game: Chess) {
     return { whiteScore, blackScore };
 }
 
-// Function to run multiple trials
-async function runTrials() {
-    const results = [];
-
-    for (let i = 1; i <= TRIALS; i++) {
-        console.log(`Running trial ${i}...`);
-        const result = await runGame(i);
-        results.push(result);
-        console.log(result);
-    }
-
-    // Write results to CSV
-    await csvWriter.writeRecords(results);
-    console.log("Results written to chess_trial_results.csv");
-}
-
-// Run the trial runner
-runTrials().catch(err => console.error(err));
+// Run the game and send results back to the parent
+(async () => {
+    const result = await runGame(workerData.trialNumber);
+    parentPort?.postMessage(result);  // Send the result back to the main thread
+})();
